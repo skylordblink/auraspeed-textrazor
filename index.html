@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Auraspeed Analyzer</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+      background: #f7f7f7;
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #000;
+      color: #fff;
+      border: none;
+    }
+    pre {
+      background: #eee;
+      padding: 15px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>AURASPEED AI Analyzer</h1>
+  <textarea id="text" placeholder="Paste your script, headline, or idea here..."></textarea>
+  <br>
+  <button onclick="analyze()">Analyze</button>
+  <pre id="result">...</pre>
+
+  <script>
+    async function analyze() {
+      const text = document.getElementById("text").value;
+      const resultEl = document.getElementById("result");
+      resultEl.textContent = "Analyzing...";
+
+      try {
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        resultEl.textContent = "❌ Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
