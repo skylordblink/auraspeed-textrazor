@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       },
       body: new URLSearchParams({
         text,
-        extractors: "entities,topics,sentiment",
+        extractors: "entities",
       }),
     });
 
