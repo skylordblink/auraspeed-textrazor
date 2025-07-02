@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Auraspeed Analyzer</title>
+  <title>AURASPEED AI Analyzer</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -28,12 +28,23 @@
       color: #fff;
       border: none;
     }
-    pre {
-      background: #eee;
-      padding: 15px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
+    .results {
       margin-top: 20px;
+    }
+    .entity {
+      background: #fff;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-left: 4px solid #000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .entity a {
+      color: #0073e6;
+      text-decoration: none;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -42,13 +53,13 @@
   <textarea id="text" placeholder="Paste your script, headline, or idea here..."></textarea>
   <br>
   <button onclick="analyze()">Analyze</button>
-  <pre id="result">...</pre>
+  <div class="results" id="result"></div>
 
   <script>
     async function analyze() {
       const text = document.getElementById("text").value;
       const resultEl = document.getElementById("result");
-      resultEl.textContent = "Analyzing...";
+      resultEl.innerHTML = "<p>Analyzing...</p>";
 
       try {
         const response = await fetch("/api/analyze", {
@@ -60,9 +71,39 @@
         });
 
         const data = await response.json();
-        resultEl.textContent = JSON.stringify(data, null, 2);
+
+        if (!data.ok) {
+          resultEl.innerHTML = `<p class="error">❌ Error: ${data.error}</p>`;
+          return;
+        }
+
+        const entities = data.response.entities || [];
+
+        if (entities.length === 0) {
+          resultEl.innerHTML = `<p>No entities found. Try a more detailed sentence.</p>`;
+          return;
+        }
+
+        resultEl.innerHTML = `<h3>Entities Found:</h3>`;
+
+        entities.forEach(entity => {
+          const name = entity.matchedText || entity.entityId || "Unknown";
+          const types = entity.type ? entity.type.join(", ") : "Unclassified";
+          const confidence = entity.confidenceScore?.toFixed(2) || "N/A";
+          const wikiLink = entity.wikiLink || null;
+
+          resultEl.innerHTML += `
+            <div class="entity">
+              <strong>${name}</strong><br/>
+              Type: ${types}<br/>
+              Confidence: ${confidence}<br/>
+              ${wikiLink ? `<a href="${wikiLink}" target="_blank">Wikipedia</a>` : ""}
+            </div>
+          `;
+        });
+
       } catch (err) {
-        resultEl.textContent = "❌ Error: " + err.message;
+        resultEl.innerHTML = `<p class="error">❌ Error: ${err.message}</p>`;
       }
     }
   </script>
