@@ -3,63 +3,97 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AURASPEED AI Analyzer</title>
+  <title>AURASPEED Analyzer</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      padding: 20px;
-      max-width: 800px;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      color: #222;
+      padding: 40px 20px;
+      max-width: 850px;
       margin: auto;
-      background: #f7f7f7;
-      color: #333;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 5px;
+    }
+    p.tagline {
+      font-size: 15px;
+      color: #666;
+      margin-bottom: 25px;
     }
     textarea {
       width: 100%;
-      height: 120px;
-      padding: 10px;
+      height: 140px;
+      padding: 15px;
       font-size: 16px;
-      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      resize: vertical;
     }
     button {
-      padding: 10px 20px;
+      padding: 12px 24px;
       font-size: 16px;
-      cursor: pointer;
-      background: #000;
-      color: #fff;
+      background-color: #F24822;
+      color: white;
       border: none;
+      border-radius: 5px;
+      cursor: pointer;
     }
-    .results {
-      margin-top: 20px;
+    button:hover {
+      opacity: 0.9;
     }
-    .entity {
+    .section {
       background: #fff;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-left: 4px solid #000;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-top: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    .entity a {
-      color: #0073e6;
-      text-decoration: none;
+    .section h2 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    .section ul {
+      padding-left: 20px;
+      margin-top: 0;
+    }
+    .section ul li {
+      margin-bottom: 8px;
     }
     .error {
-      color: red;
+      color: #c00;
       font-weight: bold;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <h1>AURASPEED AI Analyzer</h1>
-  <textarea id="text" placeholder="Paste your script, headline, or idea here..."></textarea>
-  <br>
+  <h1>AURASPEED ANALYZER</h1>
+  <p class="tagline">Paste your headline, script, or idea — this tool will extract meaning, suggest improvements, and give you a strategic edge.</p>
+
+  <textarea id="text" placeholder="Enter your YouTube script, video idea, or headline..."></textarea>
   <button onclick="analyze()">Analyze</button>
-  <div class="results" id="result"></div>
+
+  <div id="result" class="section" style="display:none;"></div>
+  <div id="error" class="error"></div>
 
   <script>
     async function analyze() {
-      const text = document.getElementById("text").value;
+      const text = document.getElementById("text").value.trim();
       const resultEl = document.getElementById("result");
-      resultEl.innerHTML = "<p>Analyzing...</p>";
+      const errorEl = document.getElementById("error");
+
+      if (!text) {
+        errorEl.textContent = "Please enter some text to analyze.";
+        resultEl.style.display = "none";
+        return;
+      }
+
+      resultEl.innerHTML = "Analyzing...";
+      resultEl.style.display = "block";
+      errorEl.textContent = "";
 
       try {
         const response = await fetch("/api/analyze", {
@@ -73,37 +107,65 @@
         const data = await response.json();
 
         if (!data.ok) {
-          resultEl.innerHTML = `<p class="error">❌ Error: ${data.error}</p>`;
+          errorEl.textContent = "Error: " + (data.error || "Something went wrong.");
+          resultEl.style.display = "none";
           return;
         }
 
-        const entities = data.response.entities || [];
+        const entities = (data.response.entities || []).filter(e => e.matchedText);
+        const topics = data.response.topics || [];
 
-        if (entities.length === 0) {
-          resultEl.innerHTML = `<p>No entities found. Try a more detailed sentence.</p>`;
-          return;
-        }
+        const uniqueTags = [...new Set([
+          ...entities.map(e => e.matchedText.toLowerCase()),
+          ...topics.map(t => t.label.toLowerCase())
+        ])];
 
-        resultEl.innerHTML = `<h3>Entities Found:</h3>`;
+        const tagList = uniqueTags.map(tag => "#" + tag.replace(/\s+/g, '_')).join(', ');
 
-        entities.forEach(entity => {
-          const name = entity.matchedText || entity.entityId || "Unknown";
-          const types = entity.type ? entity.type.join(", ") : "Unclassified";
-          const confidence = entity.confidenceScore?.toFixed(2) || "N/A";
-          const wikiLink = entity.wikiLink || null;
-
-          resultEl.innerHTML += `
-            <div class="entity">
-              <strong>${name}</strong><br/>
-              Type: ${types}<br/>
-              Confidence: ${confidence}<br/>
-              ${wikiLink ? `<a href="${wikiLink}" target="_blank">Wikipedia</a>` : ""}
-            </div>
-          `;
+        const titleSuggestions = uniqueTags.slice(0, 3).map(t => {
+          return "The Untold Story Behind " + t.charAt(0).toUpperCase() + t.slice(1);
         });
 
+        const tone = entities.length > 0 ? "Informative / Historical" : "Neutral";
+        const summary = entities.length > 0 
+          ? "This content explores key references such as " + entities.map(e => e.matchedText).join(", ") + ", offering insights that may connect to historical or cultural events." 
+          : "We couldn’t extract any meaningful entities from this content.";
+
+        resultEl.innerHTML = `
+          <div class="section">
+            <h2>Key Elements Found</h2>
+            <ul>
+              ${entities.length ? entities.map(e => `
+                <li><strong>${e.matchedText}</strong> — Type: ${e.type?.join(', ') || 'Unknown'}, Confidence: ${e.confidenceScore?.toFixed(2)}</li>
+              `).join('') : '<li>No recognizable entities found.</li>'}
+            </ul>
+          </div>
+
+          <div class="section">
+            <h2>Auto Tags</h2>
+            <p>${tagList || 'No tags generated.'}</p>
+          </div>
+
+          <div class="section">
+            <h2>Title Suggestions</h2>
+            <ul>
+              ${titleSuggestions.map(t => `<li>${t}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div class="section">
+            <h2>Tone</h2>
+            <p>${tone}</p>
+          </div>
+
+          <div class="section">
+            <h2>Summary</h2>
+            <p>${summary}</p>
+          </div>
+        `;
       } catch (err) {
-        resultEl.innerHTML = `<p class="error">❌ Error: ${err.message}</p>`;
+        errorEl.textContent = "Error: " + err.message;
+        resultEl.style.display = "none";
       }
     }
   </script>
