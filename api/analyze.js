@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     const response = await fetch("https://api.textrazor.com/", {
       method: "POST",
       headers: {
-        "x-textrazor-key": process.env.TEXTRAZOR_KEY,
+        "x-textrazor-key": process.env.aa8c880dc80ee0e5f1d7c585009937e16171769efcded85c6be0ee0b,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
