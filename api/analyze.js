@@ -1,7 +1,7 @@
 import { OpenAI } from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.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,  // Set this in your environment variables on Vercel or locally
+  apiKey: "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"
 });
 
 export default async function handler(req, res) {
@@ -32,21 +32,17 @@ Respond only with valid JSON matching this structure, no extra commentary.
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",  // or your preferred model
-      messages: [
-        { role: "user", content: prompt },
-      ],
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
     });
 
     const rawResponse = completion.choices[0].message.content;
 
-    // Try parsing JSON safely
     let parsed;
     try {
       parsed = JSON.parse(rawResponse);
-    } catch (e) {
-      // If parsing fails, return the raw text as fallback for debugging
+    } catch {
       return res.status(500).json({
         error: "Failed to parse AI response as JSON",
         rawResponse,
