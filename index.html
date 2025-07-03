@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AURASPEED Analyzer</title>
   <style>
     body {
@@ -13,15 +13,8 @@
       max-width: 850px;
       margin: auto;
     }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 5px;
-    }
-    p.tagline {
-      font-size: 15px;
-      color: #666;
-      margin-bottom: 25px;
-    }
+    h1 { font-size: 28px; margin-bottom: 5px; }
+    p.tagline { font-size: 15px; color: #666; margin-bottom: 25px; }
     textarea {
       width: 100%;
       height: 140px;
@@ -42,27 +35,19 @@
       cursor: pointer;
       margin-right: 10px;
     }
-    button:hover {
-      opacity: 0.9;
-    }
+    button:hover { opacity: 0.9; }
+    button.improve { background-color: #333; }
     .section {
       background: #fff;
       padding: 20px;
       margin-top: 30px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      white-space: pre-wrap;
     }
-    .section h2 {
-      font-size: 20px;
-      margin-bottom: 12px;
-    }
-    .section ul {
-      padding-left: 20px;
-      margin-top: 0;
-    }
-    .section ul li {
-      margin-bottom: 8px;
-    }
+    .section h2 { font-size: 20px; margin-bottom: 12px; }
+    .section ul { padding-left: 20px; margin-top: 0; }
+    .section ul li { margin-bottom: 8px; }
     .error {
       color: #c00;
       font-weight: bold;
@@ -76,7 +61,7 @@
 
   <textarea id="text" placeholder="Enter your YouTube script, video idea, or headline..."></textarea>
   <button onclick="analyze()">Analyze</button>
-  <button onclick="improve()" style="background-color: #333;">Improve It</button>
+  <button class="improve" onclick="improve()">Improve It</button>
 
   <div id="result" class="section" style="display:none;"></div>
   <div id="improved" class="section" style="display:none;"></div>
@@ -87,6 +72,10 @@
       const text = document.getElementById("text").value.trim();
       const resultEl = document.getElementById("result");
       const errorEl = document.getElementById("error");
+      const improvedEl = document.getElementById("improved");
+
+      errorEl.textContent = "";
+      improvedEl.style.display = "none";
 
       if (!text) {
         errorEl.textContent = "Please enter some text to analyze.";
@@ -94,96 +83,53 @@
         return;
       }
 
-      resultEl.innerHTML = "Analyzing...";
+      resultEl.textContent = "Analyzing...";
       resultEl.style.display = "block";
-      errorEl.textContent = "";
 
       try {
         const response = await fetch("/api/analyze", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text })
         });
 
         const data = await response.json();
 
-        if (!data.ok) {
-          errorEl.textContent = "Error: " + (data.error || "Something went wrong.");
-          resultEl.style.display = "none";
-          return;
+        if (!response.ok) {
+          throw new Error(data.error || "Something went wrong.");
         }
 
-        const cleanCap = (text) =>
-          text
-            .split(" ")
-            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(" ");
-
-        const entities = (data.response.entities || []).filter(e => e.matchedText);
-        const topics = data.response.topics || [];
-
-        const uniqueTags = [...new Set([
-          ...entities.map(e => e.matchedText.toLowerCase()),
-          ...topics.map(t => t.label.toLowerCase())
-        ])];
-
-        const filteredTags = uniqueTags
-          .filter(tag => tag.length < 35 && !tag.includes("abs-cbn") && !tag.includes("philippine"))
-          .slice(0, 10)
-          .map(tag => "#" + tag.replace(/\s+/g, '_'))
-          .join(', ');
-
-        const titleSuggestions = uniqueTags.slice(0, 3).map((tag, index) => {
-          const clean = cleanCap(tag);
-          const ideas = [
-            `What Happened to ${clean}?`,
-            `The Untold Truth About ${clean}`,
-            `${clean}: The Legacy Behind the Name`,
-            `Why ${clean} Still Matters Today`,
-            `The Rise and Fall of ${clean}`
-          ];
-          return ideas[index % ideas.length];
-        });
-
-        const tone = entities.length > 0 ? "Reflective / Historical" : "Neutral";
-
-        const topEntities = entities.slice(0, 5).map(e => cleanCap(e.matchedText));
-        const summary = topEntities.length > 0
-          ? `This passage reflects on key elements such as ${topEntities.join(", ")}, offering context that may relate to historical moments, figures, or movements.`
-          : "We couldn’t extract any meaningful concepts from the submitted text.";
-
+        // Expecting data in the form: { keyElements, suggestedTitles, recommendedTags, tone, summary, suggestions, emotion }
         resultEl.innerHTML = `
-          <div class="section">
-            <h2>Key Elements Found</h2>
-            <ul>
-              ${entities.length ? entities.slice(0, 6).map(e => `
-                <li><strong>${cleanCap(e.matchedText)}</strong> — Type: ${e.type?.join(', ') || 'Unknown'}, Confidence: ${e.confidenceScore?.toFixed(2)}</li>
-              `).join('') : '<li>No recognizable entities found.</li>'}
-            </ul>
+          <div>
+            <h2>Key Elements / Themes</h2>
+            <ul>${data.keyElements.map(item => `<li>${item}</li>`).join("")}</ul>
           </div>
 
-          <div class="section">
-            <h2>Auto Tags</h2>
-            <p>${filteredTags || 'No tags generated.'}</p>
+          <div>
+            <h2>Suggested Video Titles</h2>
+            <ul>${data.suggestedTitles.map(title => `<li>${title}</li>`).join("")}</ul>
           </div>
 
-          <div class="section">
-            <h2>Title Suggestions</h2>
-            <ul>
-              ${titleSuggestions.map(t => `<li>${t}</li>`).join('')}
-            </ul>
+          <div>
+            <h2>Recommended Tags</h2>
+            <p>${data.recommendedTags.join(", ")}</p>
           </div>
 
-          <div class="section">
+          <div>
             <h2>Tone</h2>
-            <p>${tone}</p>
+            <p>${data.tone}</p>
           </div>
 
-          <div class="section">
+          <div>
             <h2>Summary</h2>
-            <p>${summary}</p>
+            <p>${data.summary}</p>
+          </div>
+
+          ${data.suggestions ? `<div><h2>Suggestions</h2><p>${data.suggestions}</p></div>` : ""}
+          <div>
+            <h2>Emotion Triggered</h2>
+            <p>${data.emotion}</p>
           </div>
         `;
       } catch (err) {
@@ -196,6 +142,10 @@
       const text = document.getElementById("text").value.trim();
       const improvedEl = document.getElementById("improved");
       const errorEl = document.getElementById("error");
+      const resultEl = document.getElementById("result");
+
+      errorEl.textContent = "";
+      resultEl.style.display = "none";
 
       if (!text) {
         errorEl.textContent = "Please enter some text first to improve.";
@@ -203,32 +153,25 @@
         return;
       }
 
-      improvedEl.innerHTML = "Improving...";
+      improvedEl.textContent = "Improving...";
       improvedEl.style.display = "block";
-      errorEl.textContent = "";
 
       try {
         const response = await fetch("/api/improve", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text })
         });
 
         const data = await response.json();
 
-        if (!data.ok) {
-          errorEl.textContent = "Improve Error: " + (data.error || "Something went wrong.");
-          improvedEl.style.display = "none";
-          return;
+        if (!response.ok) {
+          throw new Error(data.error || "Something went wrong.");
         }
 
         improvedEl.innerHTML = `
-          <div class="section">
-            <h2>Improved Version</h2>
-            <p>${data.result}</p>
-          </div>
+          <h2>Improved Version</h2>
+          <p>${data.result}</p>
         `;
       } catch (err) {
         errorEl.textContent = "Improve Error: " + err.message;
