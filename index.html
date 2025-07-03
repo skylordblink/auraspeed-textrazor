@@ -68,73 +68,83 @@
   <div id="error" class="error"></div>
 
   <script>
-    async function analyze() {
-      const text = document.getElementById("text").value.trim();
-      const resultEl = document.getElementById("result");
-      const errorEl = document.getElementById("error");
-      const improvedEl = document.getElementById("improved");
+  async function analyze() {
+    const text = document.getElementById("text").value.trim();
+    const resultEl = document.getElementById("result");
+    const errorEl = document.getElementById("error");
+    const improvedEl = document.getElementById("improved");
 
-      errorEl.textContent = "";
-      improvedEl.style.display = "none";
+    errorEl.textContent = "";
+    improvedEl.style.display = "none";
 
-      if (!text) {
-        errorEl.textContent = "Please enter some text to analyze.";
-        resultEl.style.display = "none";
-        return;
+    if (!text) {
+      errorEl.textContent = "Please enter some text to analyze.";
+      resultEl.style.display = "none";
+      return;
+    }
+
+    resultEl.textContent = "Analyzing...";
+    resultEl.style.display = "block";
+
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        // Non-JSON response: show raw text
+        const rawText = await response.text();
+        throw new Error("Non-JSON response from server:\n" + rawText);
       }
 
-      resultEl.textContent = "Analyzing...";
-      resultEl.style.display = "block";
-
-      try {
-        const response = await fetch("/api/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
+      if (!response.ok) {
+        if (data.rawResponse) {
+          throw new Error(`Error: ${data.error}\nRaw AI Response:\n${data.rawResponse}`);
+        } else {
           throw new Error(data.error || "Something went wrong.");
         }
+      }
 
-        // Expecting data in the form: { keyElements, suggestedTitles, recommendedTags, tone, summary, suggestions, emotion }
-        resultEl.innerHTML = `
-          <div>
-            <h2>Key Elements / Themes</h2>
-            <ul>${data.keyElements.map(item => `<li>${item}</li>`).join("")}</ul>
-          </div>
+      resultEl.innerHTML = `
+        <div>
+          <h2>Key Elements / Themes</h2>
+          <ul>${data.keyElements.map(item => `<li>${item}</li>`).join("")}</ul>
+        </div>
 
-          <div>
-            <h2>Suggested Video Titles</h2>
-            <ul>${data.suggestedTitles.map(title => `<li>${title}</li>`).join("")}</ul>
-          </div>
+        <div>
+          <h2>Suggested Video Titles</h2>
+          <ul>${data.suggestedTitles.map(title => `<li>${title}</li>`).join("")}</ul>
+        </div>
 
-          <div>
-            <h2>Recommended Tags</h2>
-            <p>${data.recommendedTags.join(", ")}</p>
-          </div>
+        <div>
+          <h2>Recommended Tags</h2>
+          <p>${data.recommendedTags.join(", ")}</p>
+        </div>
 
-          <div>
-            <h2>Tone</h2>
-            <p>${data.tone}</p>
-          </div>
+        <div>
+          <h2>Tone</h2>
+          <p>${data.tone}</p>
+        </div>
 
-          <div>
-            <h2>Summary</h2>
-            <p>${data.summary}</p>
-          </div>
+        <div>
+          <h2>Summary</h2>
+          <p>${data.summary}</p>
+        </div>
 
-          ${data.suggestions ? `<div><h2>Suggestions</h2><p>${data.suggestions}</p></div>` : ""}
-          <div>
-            <h2>Emotion Triggered</h2>
-            <p>${data.emotion}</p>
-          </div>
-        `;
-      } catch (err) {
-        errorEl.textContent = "Error: " + err.message;
-        resultEl.style.display = "none";
+        ${data.suggestions ? `<div><h2>Suggestions</h2><p>${data.suggestions}</p></div>` : ""}
+        <div>
+          <h2>Emotion Triggered</h2>
+          <p>${data.emotion}</p>
+        </div>
+      `;
+    } catch (err) {
+      errorEl.textContent = err.message;
+      resultEl.style.display = "none";
       }
     }
 
