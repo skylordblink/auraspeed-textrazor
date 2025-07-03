@@ -40,6 +40,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      margin-right: 10px;
     }
     button:hover {
       opacity: 0.9;
@@ -74,12 +75,12 @@
   <p class="tagline">Paste your headline, script, or idea — this tool will extract meaning, suggest improvements, and give you a strategic edge.</p>
 
   <textarea id="text" placeholder="Enter your YouTube script, video idea, or headline..."></textarea>
- <button onclick="analyze()">Analyze</button>
-<button onclick="improve()" style="margin-left: 10px; background-color:#333;">Improve It</button>
+  <button onclick="analyze()">Analyze</button>
+  <button onclick="improve()" style="background-color: #333;">Improve It</button>
 
   <div id="result" class="section" style="display:none;"></div>
-  <div id="error" class="error"></div>
   <div id="improved" class="section" style="display:none;"></div>
+  <div id="error" class="error"></div>
 
   <script>
     async function analyze() {
@@ -179,46 +180,7 @@
             <h2>Tone</h2>
             <p>${tone}</p>
           </div>
-async function improve() {
-  const text = document.getElementById("text").value.trim();
-  const improvedEl = document.getElementById("improved");
-  const errorEl = document.getElementById("error");
 
-  if (!text) {
-    errorEl.textContent = "Please enter some text first to improve.";
-    improvedEl.style.display = "none";
-    return;
-  }
-
-  improvedEl.innerHTML = "Improving...";
-  improvedEl.style.display = "block";
-  errorEl.textContent = "";
-
-  try {
-    const response = await fetch("/api/improve", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ text })
-    });
-
-    const data = await response.json();
-
-    if (!data.ok) {
-      errorEl.textContent = "Improve Error: " + (data.error || "Something went wrong.");
-      improvedEl.style.display = "none";
-      return;
-    }
-
-    improvedEl.innerHTML = `
-      <h2>Improved Version</h2>
-      <p>${data.result}</p>
-    `;
-  } catch (err) {
-    errorEl.textContent = "Improve Error: " + err.message;
-    improvedEl.style.display = "none";
-  }
           <div class="section">
             <h2>Summary</h2>
             <p>${summary}</p>
@@ -227,6 +189,50 @@ async function improve() {
       } catch (err) {
         errorEl.textContent = "Error: " + err.message;
         resultEl.style.display = "none";
+      }
+    }
+
+    async function improve() {
+      const text = document.getElementById("text").value.trim();
+      const improvedEl = document.getElementById("improved");
+      const errorEl = document.getElementById("error");
+
+      if (!text) {
+        errorEl.textContent = "Please enter some text first to improve.";
+        improvedEl.style.display = "none";
+        return;
+      }
+
+      improvedEl.innerHTML = "Improving...";
+      improvedEl.style.display = "block";
+      errorEl.textContent = "";
+
+      try {
+        const response = await fetch("/api/improve", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+          errorEl.textContent = "Improve Error: " + (data.error || "Something went wrong.");
+          improvedEl.style.display = "none";
+          return;
+        }
+
+        improvedEl.innerHTML = `
+          <div class="section">
+            <h2>Improved Version</h2>
+            <p>${data.result}</p>
+          </div>
+        `;
+      } catch (err) {
+        errorEl.textContent = "Improve Error: " + err.message;
+        improvedEl.style.display = "none";
       }
     }
   </script>
