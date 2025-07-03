@@ -26,7 +26,12 @@ export default async function handler(req, res) {
     });
 
     const json = await openaiRes.json();
-    const improved = json.choices?.[0]?.message?.content;
+
+    if (!openaiRes.ok) {
+      return res.status(openaiRes.status).json({ error: json.error?.message || "OpenAI API error" });
+    }
+
+    const improved = json.choices?.[0]?.message?.content || "No response";
 
     return res.status(200).json({ ok: true, result: improved });
   } catch (err) {
