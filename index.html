@@ -37,11 +37,12 @@
         body: JSON.stringify({ text }),
       });
 
+      const rawText = await response.text(); // read body once as text
+      
       let data;
       try {
-        data = await response.json();
-      } catch (jsonError) {
-        const rawText = await response.text();
+        data = JSON.parse(rawText); // try parse JSON
+      } catch {
         throw new Error("Non-JSON response from server:\n" + rawText);
       }
 
