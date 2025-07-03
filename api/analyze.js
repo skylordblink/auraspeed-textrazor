@@ -15,19 +15,23 @@ export default async function handler(req, res) {
   }
 
   const prompt = `
+const prompt = `
 You're an AI YouTube strategist. A user pasted this content:
 """${text}"""
 
-Break it down into a JSON object with the following keys:
-1. keyElements: list of key elements or themes
-2. suggestedTitles: list of suggested video titles
-3. recommendedTags: list of max 10 tags, lowercase, no emojis
-4. tone: tone of the content
-5. summary: one-paragraph summary
-6. suggestions: optional suggestions to improve the content
-7. emotion: main emotion triggered (fear, awe, curiosity, etc.)
+Break it down into a JSON object exactly matching this format (no extra text or explanation):
 
-Respond only with valid JSON matching this structure, no extra commentary.
+{
+  "keyElements": [string],
+  "suggestedTitles": [string],
+  "recommendedTags": [string],
+  "tone": string,
+  "summary": string,
+  "suggestions": string,
+  "emotion": string
+}
+
+ONLY output this JSON object, nothing else.
 `;
 
   try {
