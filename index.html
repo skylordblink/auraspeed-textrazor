@@ -112,6 +112,12 @@
           return;
         }
 
+        const cleanCap = (text) =>
+          text
+            .split(" ")
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" ");
+
         const entities = (data.response.entities || []).filter(e => e.matchedText);
         const topics = data.response.topics || [];
 
@@ -120,30 +126,44 @@
           ...topics.map(t => t.label.toLowerCase())
         ])];
 
-        const tagList = uniqueTags.map(tag => "#" + tag.replace(/\s+/g, '_')).join(', ');
+        const filteredTags = uniqueTags
+          .filter(tag => tag.length < 35 && !tag.includes("abs-cbn") && !tag.includes("philippine"))
+          .slice(0, 10)
+          .map(tag => "#" + tag.replace(/\s+/g, '_'))
+          .join(', ');
 
-        const titleSuggestions = uniqueTags.slice(0, 3).map(t => {
-          return "The Untold Story Behind " + t.charAt(0).toUpperCase() + t.slice(1);
+        const titleSuggestions = uniqueTags.slice(0, 3).map((tag, index) => {
+          const clean = cleanCap(tag);
+          const ideas = [
+            `What Happened to ${clean}?`,
+            `The Untold Truth About ${clean}`,
+            `${clean}: The Legacy Behind the Name`,
+            `Why ${clean} Still Matters Today`,
+            `The Rise and Fall of ${clean}`
+          ];
+          return ideas[index % ideas.length];
         });
 
-        const tone = entities.length > 0 ? "Informative / Historical" : "Neutral";
-        const summary = entities.length > 0 
-          ? "This content explores key references such as " + entities.map(e => e.matchedText).join(", ") + ", offering insights that may connect to historical or cultural events." 
-          : "We couldn’t extract any meaningful entities from this content.";
+        const tone = entities.length > 0 ? "Reflective / Historical" : "Neutral";
+
+        const topEntities = entities.slice(0, 5).map(e => cleanCap(e.matchedText));
+        const summary = topEntities.length > 0
+          ? `This passage reflects on key elements such as ${topEntities.join(", ")}, offering context that may relate to historical moments, figures, or movements.`
+          : "We couldn’t extract any meaningful concepts from the submitted text.";
 
         resultEl.innerHTML = `
           <div class="section">
             <h2>Key Elements Found</h2>
             <ul>
-              ${entities.length ? entities.map(e => `
-                <li><strong>${e.matchedText}</strong> — Type: ${e.type?.join(', ') || 'Unknown'}, Confidence: ${e.confidenceScore?.toFixed(2)}</li>
+              ${entities.length ? entities.slice(0, 6).map(e => `
+                <li><strong>${cleanCap(e.matchedText)}</strong> — Type: ${e.type?.join(', ') || 'Unknown'}, Confidence: ${e.confidenceScore?.toFixed(2)}</li>
               `).join('') : '<li>No recognizable entities found.</li>'}
             </ul>
           </div>
 
           <div class="section">
             <h2>Auto Tags</h2>
-            <p>${tagList || 'No tags generated.'}</p>
+            <p>${filteredTags || 'No tags generated.'}</p>
           </div>
 
           <div class="section">
